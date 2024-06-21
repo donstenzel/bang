@@ -1,5 +1,8 @@
 import sys
 import Consumers
+import Lexer
+
+
 def repl(interpreter):
     print("Welcome to the ___ repl. enter ~ to exit.")
     while (line := input('> ')) != '~':
@@ -8,9 +11,7 @@ def repl(interpreter):
 
 
 def main():
-    AP = Consumers.predicate(lambda c: c == "A", "A")#.continuous()
-    BP = Consumers.predicate(lambda c: c == "B", "B")
-    Interpreter = AP.delimited(BP)
+    Interpreter = Lexer.IdentifierLexer
     match sys.argv:
         case [_]:
             repl(Interpreter)
