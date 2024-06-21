@@ -139,14 +139,15 @@ def ident_or_keyword(string):
         return Token(Keywords[string], string, None)
     else: return Token(TokenType.IDENTIFIER, string, string)
 
-IdentifierKeywordLexer = GenericConsumers\
-                        .predicate(lambda e: e.isalnum() or e == '_', "Identifier")\
-                        .continuous()\
-                        .penetrate(ident_or_keyword)
+IdentifierKeywordLexer = GenericConsumers \
+    .predicate(lambda e: e.isalnum() or e == '_', "Identifier") \
+    .continuous() \
+    .penetrate(ident_or_keyword)
 
 # Possible new thing, interesting if we want more string like syntax pieces
 SingleQuoteLexer = StringConsumers.char("'")
-SingleQuoteStringLexer = StringConsumers.not_chars("'") \
+SingleQuoteStringLexer = StringConsumers \
+    .not_chars("'") \
     .continuous() \
     .optional() \
     .bracketed(SingleQuoteLexer, SingleQuoteLexer) \
@@ -154,7 +155,8 @@ SingleQuoteStringLexer = StringConsumers.not_chars("'") \
     .penetrate(lambda string: Token(TokenType.STRING, "'" + string + "'", string))
 
 DoubleQuoteLexer = StringConsumers.char('"')
-DoubleQuoteStringLexer = StringConsumers.not_chars('"') \
+DoubleQuoteStringLexer = StringConsumers \
+    .not_chars('"') \
     .continuous() \
     .optional() \
     .bracketed(DoubleQuoteLexer, DoubleQuoteLexer) \
@@ -163,16 +165,18 @@ DoubleQuoteStringLexer = StringConsumers.not_chars('"') \
 
 UnderscoreLexer = StringConsumers.char('_')
 DigitLexer: Consume[str] = GenericConsumers.predicate(str.isdigit, "Digit")
-NumberLexer = DigitLexer.delimited(UnderscoreLexer).penetrate(collapse).penetrate(
-    lambda num: Token(TokenType.NUMBER, num, int(num))
-)
+NumberLexer = DigitLexer \
+    .delimited_optional(UnderscoreLexer) \
+    .penetrate(collapse) \
+    .penetrate(lambda num: Token(TokenType.NUMBER, num, int(num)))
 
-CommentLexer = (
-        StringConsumers.string('//')
-        >> StringConsumers.not_chars('\n').continuous()
-        << StringConsumers.char('\n')
-).penetrate(collapse) \
- .penetrate(lambda comment: Token(TokenType.COMMENT, '//' + comment + '\n', comment))
+CommentLexer = StringConsumers \
+    .not_chars('\n') \
+    .continuous() \
+    .optional() \
+    .bracketed(StringConsumers.string('//'), StringConsumers.char('\n')) \
+    .penetrate(collapse) \
+    .penetrate(lambda comment: Token(TokenType.COMMENT, '//' + comment + '\n', comment))
 
 # BlockCommentLexer = (
 #         StringConsumers.string('/*')
@@ -181,7 +185,7 @@ CommentLexer = (
 # ).penetrate(collapse) \
 #     .penetrate(lambda string: Token(TokenType.COMMENT, '/*' + string + '*/', string))
 
-TokenLexers.extend([NumberLexer, IdentifierKeywordLexer, DoubleQuoteStringLexer, SingleQuoteStringLexer, CommentLexer])
+TokenLexers.extend([IdentifierKeywordLexer, DoubleQuoteStringLexer, SingleQuoteStringLexer, CommentLexer, NumberLexer])
 
 TokenLexer = reduce(TokenLexers[::-1], Consume.__or__).delimited_optional(WhitespaceLexer)
 """Converts a string into a list of tokens if possible."""
