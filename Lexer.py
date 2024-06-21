@@ -66,3 +66,5 @@ class Token:
     token: TokenType
     lexeme: str
     literal: Any
+
+
