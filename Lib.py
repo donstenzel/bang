@@ -1,6 +1,5 @@
 from typing import Iterable, Callable
 
-
 def cons(a, b):
     match a, b:
         case [  ], [  ] : return [      ]  # Empty Empty

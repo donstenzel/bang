@@ -1,6 +1,8 @@
 import sys
+
+import Lexer
 from Consumers import GenericConsumers, StringConsumers
-#import Lexer
+
 
 def repl(interpreter):
     print("Welcome to the bang! repl. enter ~ to exit.")
@@ -10,7 +12,7 @@ def repl(interpreter):
 
 
 def main():
-    Interpreter = StringConsumers.string("Hello").optional()
+    Interpreter = Lexer.TokenLexer
     match sys.argv:
         case [_]:
             repl(Interpreter)

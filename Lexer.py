@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable
-from Lib import collapse
+from Lib import collapse, reduce
+
+from Consumers.Consumer import Consume
 from Consumers import GenericConsumers, StringConsumers
 
 
+
+WhitespaceLexer = StringConsumers.chars(" \t\n").continuous()
 # $ ~ # · †
 class TokenType(Enum):
     # Grouping
@@ -158,9 +162,10 @@ DoubleQuoteStringLexer = StringConsumers.not_chars('"') \
     .penetrate(lambda string: Token(TokenType.STRING, '"' + string + '"', string))
 
 UnderscoreLexer = StringConsumers.char('_')
-DigitLexer = GenericConsumers.predicate(str.isdigit, "Digit")
-NumberLexer = DigitLexer.seperated(UnderscoreLexer).penetrate(collapse).penetrate(
-    lambda num: Token(TokenType.NUMBER, num, int(num)))
+DigitLexer: Consume[str] = GenericConsumers.predicate(str.isdigit, "Digit")
+NumberLexer = DigitLexer.delimited(UnderscoreLexer).penetrate(collapse).penetrate(
+    lambda num: Token(TokenType.NUMBER, num, int(num))
+)
 
 CommentLexer = (
         StringConsumers.string('//')
@@ -176,4 +181,7 @@ CommentLexer = (
 # ).penetrate(collapse) \
 #     .penetrate(lambda string: Token(TokenType.COMMENT, '/*' + string + '*/', string))
 
+TokenLexers.extend([NumberLexer, IdentifierKeywordLexer, DoubleQuoteStringLexer, SingleQuoteStringLexer, CommentLexer])
 
+TokenLexer = reduce(TokenLexers[::-1], Consume.__or__).delimited_optional(WhitespaceLexer)
+"""Converts a string into a list of tokens if possible."""

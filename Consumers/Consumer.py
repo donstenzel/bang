@@ -99,8 +99,6 @@ class Consume[T]:
 
 
     def delimited(self, other: Consume[T]) -> Consume[T]:
-        delimelem = other >> self
-
         def consume(collection: Iterable[T], pos: int) -> ConsumeResult[T]:
             match self(collection, pos):
                 case ConsumeError(rest, desc, pos): return ConsumeError(rest, desc, pos)
@@ -116,6 +114,9 @@ class Consume[T]:
                                         curr = ConsumeSuccess(rest, cons(curr.parsed, parsed), pos)
                     return curr
         return Consume(consume)
+
+    def delimited_optional(self, other: Consume[T]) -> Consume[T]:
+        return (self << other.optional()).continuous()
 
     def penetrate(self, func: Callable[[T], Any]) -> Consume[T]:
         def consume(collection: Iterable[T], pos: int) -> ConsumeResult[T]:
