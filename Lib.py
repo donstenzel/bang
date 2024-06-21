@@ -24,3 +24,6 @@ def reduce[T](items: Iterable[T], aggr: Callable[[T, T], T]):
     for item in rest:
         out = aggr(out, item)
     return out
+
+def collapse(chars: Iterable[str]) -> str:
+    return ''.join(chars)

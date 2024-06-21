@@ -131,5 +131,15 @@ class Consume[T]:
                 case succ: return succ
         return Consume(consume)
 
+    def optional(self) -> Consume[T]:
+        def consume(collection: Iterable[T], pos: int) -> ConsumeResult[T]:
+            match self(collection, pos):
+                case ConsumeError(_, _, _): return ConsumeSuccess(collection, [], pos)
+                case succ: return succ
+        return Consume(consume)
+
+    def bracketed(self, left: Consume[T], right: Consume[T]) -> Consume[T]:
+        return left >> self << right
+
     def __call__(self, collection: Iterable[T], pos: int) -> ConsumeResult[T]:
         return self.func(collection, pos)

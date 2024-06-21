@@ -1,13 +1,13 @@
+from .Consumer import Consume, ConsumeError, ConsumeSuccess
 from typing import Iterable, Callable
-
-from Consumer import Consume, ConsumeError, ConsumeSuccess
 from Lib import reduce
 
 
 def predicate[T](func: Callable[[T], bool], name: str) -> Consume[T]:
     def parse(collection, pos):
         match collection:
-            case head, *tail: return ConsumeSuccess(tail, head, pos +1) if func(head) else ConsumeError(collection, f"{name} @ {pos} $> {head} did not match predicate.", pos)
+            case head, *tail:
+                return ConsumeSuccess(tail, head, pos +1) if func(head) else ConsumeError(collection, f"{name} @ {pos} $> '{head}' did not match expected.", pos)
             case []: return ConsumeError(collection, f"{name} @ {pos} $> Input is empty.", pos)
             case _: return ConsumeError(collection, f"{name} @ {pos} $> Input has wrong format.", pos)
     return Consume(parse)

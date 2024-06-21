@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable
-
-import Consumers
+from Lib import collapse
+from Consumers import GenericConsumers, StringConsumers
 
 
 # $ ~ # · †
@@ -42,8 +42,8 @@ class TokenType(Enum):
     PIPE              = 27 #  |>
 
     # Literals
-    STRING            = 28 #  '"' + content + '"'
-    NUMBER            = 29 #  some number of numeric chars in a row, for now just ints. but simple to fix - just copy the float parser from jsonparser
+    STRING            = 28 #  (' | ") + content + (' | ") <- quotes have to match.
+    NUMBER            = 29 #  some number of numeric chars in a row, for now just ints. but simple to fix - just copy the float parser from jsonLexer
     COMMENT           = 30 #  //... until end of line
     IDENTIFIER        = 31 #  alphabetic chars + _ that dont match anything else
 
@@ -74,7 +74,7 @@ class Token:
 
 TokenLexers = []
 def SimpleTokenLexer(string, tokentype):
-    c = Consumers.sequence(string, f"{string} Token").penetrate(lambda cs: Token(tokentype, ''.join(cs), None))
+    c = GenericConsumers.sequence(string, f"{string} Token").penetrate(lambda cs: Token(tokentype, ''.join(cs), None))
     TokenLexers.append(c)
     return c
 
@@ -128,14 +128,52 @@ Keywords = {
     "null"   :   TokenType.NULL,
     "base"   :   TokenType.BASE
 }
+
 def ident_or_keyword(string):
     string = ''.join(string)
     if string in Keywords.keys():
         return Token(Keywords[string], string, None)
     else: return Token(TokenType.IDENTIFIER, string, string)
 
-IdentifierLexer        = Consumers\
+IdentifierKeywordLexer = GenericConsumers\
                         .predicate(lambda e: e.isalnum() or e == '_', "Identifier")\
                         .continuous()\
                         .penetrate(ident_or_keyword)
+
+# Possible new thing, interesting if we want more string like syntax pieces
+SingleQuoteLexer = StringConsumers.char("'")
+SingleQuoteStringLexer = StringConsumers.not_chars("'") \
+    .continuous() \
+    .optional() \
+    .bracketed(SingleQuoteLexer, SingleQuoteLexer) \
+    .penetrate(collapse) \
+    .penetrate(lambda string: Token(TokenType.STRING, "'" + string + "'", string))
+
+DoubleQuoteLexer = StringConsumers.char('"')
+DoubleQuoteStringLexer = StringConsumers.not_chars('"') \
+    .continuous() \
+    .optional() \
+    .bracketed(DoubleQuoteLexer, DoubleQuoteLexer) \
+    .penetrate(collapse) \
+    .penetrate(lambda string: Token(TokenType.STRING, '"' + string + '"', string))
+
+UnderscoreLexer = StringConsumers.char('_')
+DigitLexer = GenericConsumers.predicate(str.isdigit, "Digit")
+NumberLexer = DigitLexer.seperated(UnderscoreLexer).penetrate(collapse).penetrate(
+    lambda num: Token(TokenType.NUMBER, num, int(num)))
+
+CommentLexer = (
+        StringConsumers.string('//')
+        >> StringConsumers.not_chars('\n').continuous()
+        << StringConsumers.char('\n')
+).penetrate(collapse) \
+ .penetrate(lambda comment: Token(TokenType.COMMENT, '//' + comment + '\n', comment))
+
+# BlockCommentLexer = (
+#         StringConsumers.string('/*')
+#         >> (StringConsumers.not_chars('*') | StringConsumers.char('*').lookahead(StringConsumers.char('/'))).iterated()
+#         << StringConsumers.string('*/')
+# ).penetrate(collapse) \
+#     .penetrate(lambda string: Token(TokenType.COMMENT, '/*' + string + '*/', string))
+
 

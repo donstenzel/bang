@@ -1,17 +1,16 @@
 import sys
-import Consumers
-import Lexer
-
+from Consumers import GenericConsumers, StringConsumers
+#import Lexer
 
 def repl(interpreter):
-    print("Welcome to the ___ repl. enter ~ to exit.")
+    print("Welcome to the bang! repl. enter ~ to exit.")
     while (line := input('> ')) != '~':
         print(interpreter(list(line), 0))
 
 
 
 def main():
-    Interpreter = Lexer.IdentifierLexer
+    Interpreter = StringConsumers.string("Hello").optional()
     match sys.argv:
         case [_]:
             repl(Interpreter)
