@@ -312,27 +312,423 @@ if __name__ == "__main__":
             + XmlNameParser.bracket(LAngleBracketParser + SlashParser, RAngleBracketParser)
     ).penetrate(interpretXmlKvp)
 
+# !/usr/bin/python3
+
+from __future__ import annotations
+from dataclasses import dataclass
+from enum import Enum
+import sys
+from typing import Any
+from parzerker import Parser, Parsers, collapse, padding, reduce
+
+
+# Tokens: Literals, Keywords, Operators, Grouping
+# Grouping: '(' ')' '{' '}' '[' ']'
+# Operators: + - * / % & | < > = == <= >= ! != << >> |> . : (maybe $ ~ # · † ) [+]
+# Literals: String, Number, Identifier, Comment [+]
+
+@dataclass
+class Token:
+    token: TokenType
+    lexeme: str
+    literal: Any
+
+
+class TokenType(Enum):
+    # Grouping
+    LEFTPARENTOKEN = 0  # (
+    RIGHTPARENTOKEN = 1  # )
+    LEFTBRAKETTOKEN = 2  # [
+    RIGHTBRACKETTOKEN = 3  # ]
+    LEFTBRACETOKEN = 4  # {
+    RIGHTBRACETOKEN = 5  # }
+
+    # Single Character Operators
+    PLUS = 6  # +
+    MINUS = 7  # -
+    STAR = 8  # *
+    SLASH = 9  # /
+    PERCENT = 10  # %
+    AND = 11  # &
+    OR = 12  # |
+    LESS = 13  # <
+    GREATER = 14  # >
+    EQUALS = 15  # =
+    BANG = 16  # !
+    DOT = 17  # .
+    QUESTIONMARK = 18  # ?
+    COMMA = 19  # ,
+    COLON = 20  # :
+
+    # Double Character Operators
+    DEQUALS = 21  # ==
+    LESSEQUALS = 22  # <=
+    GREATEREQUALS = 23  # >=
+    NOTEQUALS = 24  # !=
+    LEFTSHIFT = 25  # <<
+    RIGHTSHIFT = 26  # >>
+    PIPE = 27  # |>
+
+    # Literals
+    STRING = 28  # '"' + content + '"'
+    NUMBER = 29  # some number of numeric chars in a row, for now just ints. but simple to fix - just copy the float parser from jsonparser
+    COMMENT = 30  # //... until end of line
+    IDENTIFIER = 31  # alphabetic chars + _ that dont match anything else
+
+    # Keywords
+    IF = 32  # if
+    ELSE = 33  # else
+    MATCH = 34  # match
+    TRUE = 35  # true
+    FALSE = 36  # false
+    FOR = 37  # for
+    IN = 38  # in
+    WHILE = 39  # while
+    RETURN = 40  # return
+    VAR = 41  # var
+    VAL = 42  # val
+    THIS = 43  # this
+    CLASS = 44  # class
+    FUN = 45  # fun
+    NULL = 46  # null
+    BASE = 47  # base
+
+
+Keywords = {
+    "if": TokenType.IF,
+    "else": TokenType.ELSE,
+    "match": TokenType.MATCH,
+    "true": TokenType.TRUE,
+    "false": TokenType.FALSE,
+    "for": TokenType.FOR,
+    "in": TokenType.IN,
+    "while": TokenType.WHILE,
+    "return": TokenType.RETURN,
+    "var": TokenType.VAR,
+    "val": TokenType.VAL,
+    "this": TokenType.THIS,
+    "class": TokenType.CLASS,
+    "fun": TokenType.FUN,
+    "null": TokenType.NULL,
+    "base": TokenType.BASE
+}
+
+Unaries = [TokenType.BANG, TokenType.MINUS, TokenType.PLUS]
+
+TokenParsers = []
+
+
+class Scanner:
+    global TokenParsers, Keywords
+
+    def ConstantTokenParser(string, token):
+        parser = Parsers.string(string).penetrate(lambda cs: Token(token, collapse(cs), None))
+        TokenParsers.append(parser)
+        return parser
+
+    LeftParenParser = ConstantTokenParser('(', TokenType.LEFTPARENTOKEN)
+    RightParenParser = ConstantTokenParser(')', TokenType.RIGHTPARENTOKEN)
+    LeftBracketParser = ConstantTokenParser('[', TokenType.LEFTBRAKETTOKEN)
+    RightBracketParser = ConstantTokenParser(']', TokenType.RIGHTBRACKETTOKEN)
+    LeftBraceParser = ConstantTokenParser('{', TokenType.LEFTBRACETOKEN)
+    RightBraceParser = ConstantTokenParser('}', TokenType.RIGHTBRACETOKEN)
+
+    PlusParser = ConstantTokenParser('+', TokenType.PLUS)
+    MinusParser = ConstantTokenParser('-', TokenType.MINUS)
+    StarParser = ConstantTokenParser('*', TokenType.STAR)
+    SlashParser = ConstantTokenParser('/', TokenType.SLASH)
+    PercentParser = ConstantTokenParser('%', TokenType.PERCENT)
+    AndParser = ConstantTokenParser('&', TokenType.AND)
+    OrParser = ConstantTokenParser('|', TokenType.OR)
+    LessThanParser = ConstantTokenParser('<', TokenType.LESS)
+    GreaterThanParser = ConstantTokenParser('>', TokenType.GREATER)
+    EqualsParser = ConstantTokenParser('=', TokenType.EQUALS)
+    BangParser = ConstantTokenParser('!', TokenType.BANG)
+    DotParser = ConstantTokenParser('.', TokenType.DOT)
+    QuestionmarkParser = ConstantTokenParser('?', TokenType.QUESTIONMARK)
+    CommaParser = ConstantTokenParser(',', TokenType.COMMA)
+    ColonParer = ConstantTokenParser(':', TokenType.COLON)
+
+    DoubleEqualsParser = ConstantTokenParser('==', TokenType.DEQUALS)
+    LessEqualsParser = ConstantTokenParser('<=', TokenType.LESSEQUALS)
+    GreaterEqualsParser = ConstantTokenParser('>=', TokenType.GREATEREQUALS)
+    NotEqualsParser = ConstantTokenParser('!=', TokenType.NOTEQUALS)
+    LeftShiftParser = ConstantTokenParser('<<', TokenType.LEFTSHIFT)
+    RightShiftParser = ConstantTokenParser('>>', TokenType.RIGHTSHIFT)
+    PipeParser = ConstantTokenParser('|>', TokenType.PIPE)
+
+    # Possible new thing, interesting if we want more string like syntax pieces
+    SingleQuoteParser = Parsers.char("'")
+    SingleQuoteStringParser = Parsers.not_chars("'") \
+        .iterated() \
+        .optional() \
+        .bracket_no_padding(SingleQuoteParser, SingleQuoteParser) \
+        .penetrate(collapse) \
+        .penetrate(lambda string: Token(TokenType.STRING, "'" + string + "'", string))
+
+    DoubleQuoteParser = Parsers.char('"')
+    DoubleQuoteStringParser = Parsers.not_chars('"') \
+        .iterated() \
+        .optional() \
+        .bracket_no_padding(DoubleQuoteParser, DoubleQuoteParser) \
+        .penetrate(collapse) \
+        .penetrate(lambda string: Token(TokenType.STRING, '"' + string + '"', string))
+
+    UnderscoreParser = Parsers.char('_')
+    DigitParser = Parsers.predicate(str.isdigit)
+    NumberParser = DigitParser.seperated(UnderscoreParser).penetrate(collapse).penetrate(
+        lambda num: Token(TokenType.NUMBER, num, int(num)))
+
+    CommentParser = (
+            Parsers.string('//')
+            >> Parsers.not_chars('\n').iterated()
+            << Parsers.char('\n')
+    ).penetrate(collapse) \
+        .penetrate(lambda comment: Token(TokenType.COMMENT, '//' + comment + '\n', comment))
+
+    BlockCommentParser = (
+            Parsers.string('/*')
+            >> (Parsers.not_chars('*') | Parsers.char('*').lookahead(Parsers.char('/'))).iterated()
+            << Parsers.string('*/')
+    ).penetrate(collapse) \
+        .penetrate(lambda string: Token(TokenType.COMMENT, '/*' + string + '*/', string))
+
+    def ident(string):
+        if string in Keywords.keys():
+            return Token(Keywords[string], string, None)
+        return Token(TokenType.IDENTIFIER, string, string)
+
+    IdentifierKeywordParser = (
+            Parsers.predicate(lambda char: char.isalpha() or char == '_')
+            + Parsers.predicate(lambda char: char.isalnum() or char == '_').iterated().optional()
+    ).penetrate(collapse) \
+        .penetrate(ident)
+
+    TokenParsers.extend(
+        [NumberParser, IdentifierKeywordParser, DoubleQuoteStringParser, SingleQuoteStringParser, CommentParser,
+         BlockCommentParser])
+    head, *tail = TokenParsers[::-1]
+    TokenParser = (
+        reduce(tail, Parser.__or__, head)
+    ).seperated(padding)
+
+
+def token(token_to_parse: TokenType) -> Parser[Token]:
+    return Parsers.predicate(lambda t: t.token == token_to_parse)
+
+
+def binaryOpTrain(element, operator):
+    return element + (operator + element).iterated().optional()
+
+
+def binaryTree(operator, element):
+    opelem = operator + element
+
+    def parse(tokens):
+        match element(tokens):
+            case None:
+                return None
+            case [rest, curr]:
+                while (res := opelem(rest)) != None:
+                    rest, [op, elem] = res
+                    curr = BinaryOperation(curr, op, elem)
+                return (rest, curr)
+
+    return Parser(parse)
+
+
+def cons(a, b):
+    match a, b:
+        case oneA, oneB:
+            return [oneA, oneB]
+        case oneA, [*multB]:
+            return [oneA, *multB]
+        case [*multA], oneB:
+            return [*multA, oneB]
+        case [*multA], [*multB]:
+            return [*multA, *multB]
+
+
+def delimited(element, delimiter):
+    delimelem = delimiter >> element
+
+    def parse(tokens):
+        match element(tokens):
+            case None:
+                return None
+            case [rest, curr]:
+                while (res := delimelem(rest)) != None:
+                    rest, elem = res
+                    curr = cons(curr, elem)
+                return (rest, curr)
+
+    return Parser(parse)
+
+
+class Node: pass
+
+
+@dataclass
+class PrimaryNode(Node):
+    value: Token
+
+
+@dataclass
+class UnaryOperation(Node):
+    operator: Token
+    value: Token
+
+
+@dataclass
+class BinaryOperation(Node):
+    left: Token
+    operator: Token
+    right: Token
+
+
+@dataclass
+class FunctionDefinitionNode(Node):
+    name: Token
+    args: list[Token]
+    body: Token
+
+    def __init__(self, args):
+        head, *mid, tail = args
+        self.name = head
+        self.args = mid
+        self.body = tail
+
+
+Variables = {}
+
+
+@dataclass
+class VariableNode(Node):
+    name: str
+    value: Token
+    global Variables
+
+    def __init__(self, name, value=None):
+        self.name = name
+        self.value = value
+
+    def get(self):
+        return self.value
+
+    def set(self, value):
+        self.value = value
+
+    def __new__(cls, name, value):
+        instance = super().__new__(cls)
+        Variables[name] = instance
+        return instance
+
+
+class AbstractSyntaxTreeParser:
+    # expression     → equality ;
+    # equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+    # comparison     → shift ( ( ">" | ">=" | "<" | "<=" ) shift )* ;
+    # shift          → term ( ( ">>" | "<<" ) term )* ;
+    # term           → factor ( ( "-" | "+" ) factor )* ;
+    # factor         → unary ( ( "/" | "*" ) unary )* ;
+    # unary          → ( "!" | "-" ) unary
+    #                | primary ;
+    # primary        → NUMBER | STRING | "true" | "false" | "null"
+    #                | "(" expression ")" ;
+
+    Expression = Parser(lambda: None)
+
+    Statement = Parser(lambda: None)
+
+    def assign(pair):
+        ident, value = pair
+        return VariableNode(ident.literal, value)
+
+    Assignment = ((token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + Expression).penetrate(assign)
+
+    # keyword fun -> identifier name -> parenthesized comma seperated list of identifiers arguments -> braced list of expressions and statements
+    # returns: name -> list of arg names -> body
+    FunctionDefinition = (token(TokenType.FUN) \
+                          >> token(TokenType.IDENTIFIER) \
+                          + (
+                                  token(TokenType.LEFTPARENTOKEN)
+                                  >> delimited(token(TokenType.IDENTIFIER), token(TokenType.COMMA))
+                                  << token(TokenType.RIGHTPARENTOKEN)
+                          ) + (
+                                  token(TokenType.LEFTBRACETOKEN)
+                                  >> (Statement | Expression).iterated()
+                                  << token(TokenType.RIGHTBRACETOKEN)
+                          )).penetrate(FunctionDefinitionNode)
+
+    LiteralKeyword = token(TokenType.TRUE) | token(TokenType.FALSE) | token(TokenType.NULL)
+
+    Primary = (token(TokenType.IDENTIFIER) | token(TokenType.NUMBER) | token(TokenType.STRING) | LiteralKeyword | (
+                token(TokenType.LEFTPARENTOKEN) >> Expression << token(TokenType.RIGHTPARENTOKEN)))  # .penetrate(PrimaryNode)
+
+    # no nested unaries like !!a only !(!a) works
+    UnaryOp = token(TokenType.BANG) | token(TokenType.MINUS) | token(TokenType.PLUS)
+    Unary = (UnaryOp + Primary).penetrate(lambda tkns: UnaryOperation(*tkns)) | Primary
+
+    FactorOp = token(TokenType.STAR) | token(TokenType.SLASH)
+    Factor = binaryTree(FactorOp, Unary)
+
+    TermOp = token(TokenType.PLUS) | token(TokenType.MINUS)
+    Term = binaryTree(TermOp, Factor)
+
+    ShiftOp = token(TokenType.LEFTSHIFT) | token(TokenType.RIGHTSHIFT)
+    Shift = binaryTree(ShiftOp, Term)
+
+    ComparisonOp = token(TokenType.LESS) | token(TokenType.LESSEQUALS) | token(TokenType.GREATER) | token(
+        TokenType.GREATEREQUALS)
+    Comparison = binaryTree(ComparisonOp, Shift)
+
+    EqualityOp = token(TokenType.DEQUALS) | token(TokenType.NOTEQUALS)
+    Equality = binaryTree(EqualityOp, Comparison)
+
+    Expression.parse = Equality.parse
+
+    Statement.parse = (FunctionDefinition | Assignment).parse
+
+    File = Statement | Expression
+
+    ...
+
+
+def interpret(src):
+    match Scanner.TokenParser(src):
+        case None:
+            print("Invalid tokens.")
+        case [rest, parsed1]:
+            print("Tokens:")
+            print(*parsed1, sep='\n')
+            match AbstractSyntaxTreeParser.FunctionDefinition(parsed1):
+                case None:
+                    print("Invalid syntax.")
+                case [rest, parsed2]:
+                    print("Rest:", rest, "Nodes:", parsed2, sep='\n')
+
+
 def repl():
-    print("Welcome to the ___ repl. enter ~ to exit.")
-    while (line := input('')) != '~':
-        print(tokenize(line))
-
-
-def tokenize(source): ...
+    print("Welcome to the ___ REPL. Enter valid syntax to see its lexed representation.\nEnter ~ to quit.\n")
+    while True:
+        line = input('> ')
+        if line == "~": break
+        interpret(line)
 
 
 def main():
     match sys.argv:
         case [_]:
             repl()
-        case [_, source_or_file]:
+        case [_, path_or_literal]:
             try:
-                with open(source_or_file) as file:
-                    source = file.read()
-            except FileNotFoundError as _:
-                source = source_or_file
-            print(tokenize(source))
-        case [*_]: print("Use with a source file, direct source string or on its own.")
+                with open(path_or_literal) as src:
+                    script = src.read()
+                interpret(script)
+            except:
+                interpret(path_or_literal)
+        case [*_]:
+            print("Usage: interpreter.py [script or source]")
 
 
 if __name__ == "__main__":

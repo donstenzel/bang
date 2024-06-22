@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, Callable, Any
-from Lib import cons
+from Lib import cons, Ordering, compare
 
 type ConsumeResult[T] = ConsumeSuccess[T] | ConsumeError[T]
 type ConsumeFunction[T] = Callable[[Iterable[T], int], ConsumeResult[T]]
@@ -22,7 +22,7 @@ class ConsumeError[T]:
 
 class Consume[T]:
     def __init__(self, func: ConsumeFunction[T]):
-        self.func = func
+        self.consume = func
 
     def __add__(self, other: Consume[T]) -> Consume[T]:
         def consume(collection: Iterable[T], pos: int) -> ConsumeResult[T]:
@@ -39,20 +39,36 @@ class Consume[T]:
 
     def __or__(self, other: Consume[T]) -> Consume[T]:
         def consume(collection: Iterable[T], pos: int) -> ConsumeResult[T]:
-            match self(collection, pos):
-                case ConsumeSuccess(rest1, parsed1, pos1):
-                    return ConsumeSuccess(rest1, parsed1, pos1)
-                case ConsumeError(rest1, error1, pos1):
-                    match other(collection, pos):
-                        case ConsumeSuccess(rest2, parsed2, pos2):
-                            return ConsumeSuccess(rest2, parsed2, pos2)
-                        case ConsumeError(rest2, error2, pos2):
-                            if pos2 > pos1:
-                                return ConsumeError(rest2, error2, pos2)
-                            elif pos1 > pos2:
-                                return ConsumeError(rest1, error1, pos1)
-                            else:
-                                return ConsumeError(rest1, f"{error1} | {error2}", pos1)
+            # match self(collection, pos):
+            #     case ConsumeSuccess(rest1, parsed1, pos1):
+            #         return ConsumeSuccess(rest1, parsed1, pos1)
+            #     case ConsumeError(rest1, error1, pos1):
+            #         match other(collection, pos):
+            #             case ConsumeSuccess(rest2, parsed2, pos2):
+            #                 return ConsumeSuccess(rest2, parsed2, pos2)
+            #             case ConsumeError(rest2, error2, pos2):
+            #                 if pos2 > pos1:
+            #                     return ConsumeError(rest2, error2, pos2)
+            #                 elif pos1 > pos2:
+            #                     return ConsumeError(rest1, error1, pos1)
+            #                 else:
+            #                     return ConsumeError(rest1, f"{error1} | {error2}", pos1)
+
+            match self(collection, pos), other(collection, pos):
+                case ConsumeSuccess(rest1, parsed1, pos1), ConsumeSuccess(rest2, parsed2, pos2):
+                    match compare(pos1, pos2):
+                        case Ordering.LESS: return ConsumeSuccess(rest2, parsed2, pos2)
+                        case Ordering.EQUAL: return ConsumeSuccess(rest1, parsed1, pos1) # maybe return error cause ambiguous match
+                        case Ordering.GREATER: return ConsumeSuccess(rest1, parsed1, pos1)
+                case ConsumeSuccess(rest, parsed, pos), ConsumeError(_, _, _):
+                    return ConsumeSuccess(rest, parsed, pos)
+                case ConsumeError(_, _, _), ConsumeSuccess(rest, parsed, pos):
+                    return ConsumeSuccess(rest, parsed, pos)
+                case ConsumeError(rest1, desc1, pos1), ConsumeError(rest2, desc2, pos2):
+                    match compare(pos1, pos2):
+                        case Ordering.LESS: return ConsumeError(rest2, desc2, pos2)
+                        case Ordering.EQUAL: return ConsumeError(rest2, f"{desc1} | {desc2}", pos2)
+                        case Ordering.GREATER: return ConsumeError(rest1, desc1, pos1)
         return Consume(consume)
 
     def __rshift__(self, other: Consume[T]) -> Consume[T]:
@@ -143,4 +159,4 @@ class Consume[T]:
         return left >> self << right
 
     def __call__(self, collection: Iterable[T], pos: int) -> ConsumeResult[T]:
-        return self.func(collection, pos)
+        return self.consume(collection, pos)

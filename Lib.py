@@ -1,6 +1,8 @@
+from enum import Enum
 from typing import Iterable, Callable
 
 def cons(a, b):
+    """what + should be when lists are involved..."""
     match a, b:
         case [  ], [  ] : return [      ]  # Empty Empty
         case [*l], [  ] : return [*l    ]  # List  Empty
@@ -26,3 +28,16 @@ def reduce[T](items: Iterable[T], aggr: Callable[[T, T], T]):
 
 def collapse(chars: Iterable[str]) -> str:
     return ''.join(chars)
+
+class Ordering(Enum):
+    LESS = 0
+    EQUAL = 1
+    GREATER = 2
+
+def compare(a, b):
+    if a < b:
+        return Ordering.LESS
+    if a > b:
+        return Ordering.GREATER
+    else:
+        return Ordering.EQUAL
