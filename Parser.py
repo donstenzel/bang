@@ -71,6 +71,25 @@ EqualityTokens = [(TokenType.DEQUALS, BinaryEquals),
 EqualityParser = binaries(ComparisonParser, EqualityTokens)
 
 # here we override the instance method and not the entire instance.
-# this overrides the referenced function and supplies the actual definition.
-# this allows us to create infinitely nested non left or right recursive (primitive?) parsers.
+# this overrides the referenced function and supplies the actual definition,
+# which allows us to create infinitely nested non left or right recursive (primitive?) parsers.
 ExpressionParser.consume = EqualityParser.consume
+
+
+
+# Expressions
+# anonymous function: (a) -> {b}
+# if: {a} if (b) else {c}
+# block: {stmts +expr}
+# match: match a { (b -> {c})+ } where c is block expr
+
+# Statements
+# if: if (a) {b} else if (c) {d} else {e}
+# mutable variable: var a = b
+# immutable value: val a = b
+# function def: fun a (b) {c}
+# return: return a
+# block: {stmts}
+# for loop: for a in b {c}
+# while loop: while cond {a}
+# match: match a { (b -> {c})+ }
