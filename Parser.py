@@ -50,23 +50,27 @@ UnaryParser = unaries(UnaryTokens) | PrimaryParser
 
 FactorTokens = [(TokenType.STAR, BinaryStar),
                 (TokenType.SLASH, BinarySlash)]
-FactorParser = binaries(UnaryParser, FactorTokens) | UnaryParser
+FactorParser = binaries(UnaryParser, FactorTokens)
 
 TermTokens = [(TokenType.PLUS, BinaryPlus),
               (TokenType.MINUS, BinaryMinus)]
-TermParser = binaries(FactorParser, TermTokens) | FactorParser
+TermParser = binaries(FactorParser, TermTokens)
 
 ShiftTokens = [(TokenType.LEFTSHIFT, BinaryLeftShift),
                (TokenType.RIGHTSHIFT, BinaryRightShift)]
-ShiftParser = binaries(TermParser, ShiftTokens) | TermParser
+ShiftParser = binaries(TermParser, ShiftTokens)
 
 ComparisonTokens = [(TokenType.LESS, BinaryLessThan),
                     (TokenType.LESSEQUALS, BinaryLessEquals),
                     (TokenType.GREATER, BinaryGreaterThan),
                     (TokenType.GREATEREQUALS, BinaryGreaterEquals)]
-ComparisonParser = binaries(ShiftParser, ComparisonTokens) | ShiftParser # redundant since binary allows single element?
+ComparisonParser = binaries(ShiftParser, ComparisonTokens)
+
+EqualityTokens = [(TokenType.DEQUALS, BinaryEquals),
+                  (TokenType.NOTEQUALS, BinaryNotEquals)]
+EqualityParser = binaries(ComparisonParser, EqualityTokens)
 
 # here we override the instance method and not the entire instance.
 # this overrides the referenced function and supplies the actual definition.
 # this allows us to create infinitely nested non left or right recursive (primitive?) parsers.
-ExpressionParser.consume = (ComparisonParser).consume
+ExpressionParser.consume = EqualityParser.consume
