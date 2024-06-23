@@ -82,11 +82,13 @@ ExpressionParser.consume = EqualityParser.consume
 # if: {a} if (b) else {c}
 # block: {stmts +expr}
 # match: match a { (b -> {c})+ } where c is block expr
+# identifier: a
+# literals: 123, "a", ...
 
 # Statements
 # if: if (a) {b} else if (c) {d} else {e}
-# mutable variable: var a = b
-# immutable value: val a = b
+# variable: var a = b where b is expr
+# value: val a = b
 # function def: fun a (b) {c}
 # return: return a
 # block: {stmts}
