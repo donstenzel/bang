@@ -75,52 +75,61 @@ EqualityParser = binaries(ComparisonParser, EqualityTokens)
 
 ArgsParser = token(TokenType.LEFTPARENTOKEN) >> token(TokenType.IDENTIFIER).delimited(token(TokenType.COMMA)).optional() << token(TokenType.RIGHTPARENTOKEN)
 
+AnonFunctionParser = ((ArgsParser << token(TokenType.BIND)) + StatementParser).penetrate(lambda l: AnonymousFunction(*l))
+
+
 
 VariableAssParser = ((token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: VariableAssignment(*l))
 
 BlockParser = (token(TokenType.LEFTBRACETOKEN) >> DeclarationParser.continuous().optional() << token(TokenType.RIGHTBRACETOKEN)).penetrate(Block)
 
+ElseParser = (token(TokenType.ELSE) >> StatementParser).penetrate(Else)
 
-AnonFunctionParser = (ArgsParser << token(TokenType.BIND)) + BlockParser
+IfParser = ((token(TokenType.IF) >> ExpressionParser) + StatementParser + ElseParser.optional()).penetrate(lambda l: If(*l))
 
-# here we override the instance method and not the entire instance.
-# this overrides the referenced function and supplies the actual definition,
-# which allows us to create infinitely nested non left or right recursive (primitive?) parsers.
-ExpressionParser.consume = EqualityParser.consume
+WhileParser = ((token(TokenType.WHILE) >> ExpressionParser) + StatementParser).penetrate(lambda l: While(*l))
 
 VariableDeclParser = ((token(TokenType.VAR) >> token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: VariableDeclaration(*l))
 
 ValueDeclParser = ((token(TokenType.VAL) >> token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: ValueDeclaration(*l))
 
-WhileParser = ((token(TokenType.WHILE) >> ExpressionParser) + StatementParser).penetrate(lambda l: While(*l))
 
-StatementParser.consume = (WhileParser | VariableAssParser | BlockParser | ExpressionParser).consume
 FunctionDeclParser = ((token(TokenType.FUN) >> token(TokenType.IDENTIFIER))
-                     + ArgsParser
+                     +(ArgsParser << token(TokenType.BIND))
                      + StatementParser).penetrate(lambda l: FunctionDeclaration(*l))
 
 ClassDeclParser = ...
 
+
+
+# here we override the instance method and not the entire instance.
+# this overrides the referenced function and supplies the actual definition,
+# which allows us to create infinitely nested non left or right recursive (primitive?) parsers.
+ExpressionParser.consume = (AnonFunctionParser | EqualityParser).consume
+StatementParser.consume = (IfParser | WhileParser | VariableAssParser | BlockParser | ExpressionParser).consume
 DeclarationParser.consume = (FunctionDeclParser | ValueDeclParser | VariableDeclParser | StatementParser).consume
 
 
 FileParser = DeclarationParser.continuous()
 
 # Expressions
-# anonymous function: (a) -> {b}
-# if: {a} if (b) else {c}
-# block: {stmts +expr}
-# match: match a { (b -> {c})+ } where c is block expr
+# operators ✔
+# anonymous function: (a) -> {b} ✔
+# if: {a} if (b) else {c} ✔
 # identifier: a ✔
-# literals: 123, "a", ... ✔?
+# literals: 123, "a" ✔ maybe more
+# block: {stmts +expr} maybe
+# match: match a { (b -> {c})+ } maybe
 
-# Statements
-# if: if (a) {b} else [ifstmt]
+# Declarations
 # variable: var a = b where b is expr ✔
 # value: val a = b ✔
 # function def: fun a (b) -> {c} ✔
-# return: return a
+
+# Statements
+# if: if (a) {b} else [ifstmt]
+# while loop: while cond -> {a} ✔
 # block: {stmts} ✔
+# return: return a
 # for loop: for a in b {c}
-# while loop: while cond -> {a}
 # match: match a { (b -> {c})+ }

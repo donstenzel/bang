@@ -89,6 +89,10 @@ class FunctionDeclaration(Node):
     body: Block
 
 @dataclass
+class AnonymousFunction(Node):
+    args: list[Token]
+    body: Block
+@dataclass
 class VariableDeclaration(Node):
     name: Token
     value: Node
@@ -106,3 +110,13 @@ class VariableAssignment(Node):
 class While(Node):
     condition: Node | Token
     stmt: Node
+
+@dataclass
+class Else(Node):
+    stmt: Node
+
+@dataclass
+class If(Node):
+    cond: Node | Token
+    stmt: Node
+    otherwise: Else = None
