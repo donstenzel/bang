@@ -34,7 +34,7 @@ def noop(a):
     return a
 
 def main():
-    interpreter = Interpreter(Lexer.TokenLexer, Parser.ExpressionParser, noop, noop)
+    interpreter = Interpreter(Lexer.TokenLexer, Parser.FileParser, noop, noop)
     match sys.argv:
         case [_]:
             repl(interpreter)

@@ -7,68 +7,102 @@ class Node: pass
 
 @dataclass
 class UnaryMinus(Node):
-    value: Node | Token
+    value: Node
 
 @dataclass
 class UnaryBang(Node):
-    value: Node | Token
+    value: Node
 
 @dataclass
 class BinaryPlus(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryMinus(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryStar(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinarySlash(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryLeftShift(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryRightShift(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryLessThan(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryLessEquals(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryGreaterThan(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryGreaterEquals(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryEquals(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
 
 @dataclass
 class BinaryNotEquals(Node):
-    left: Node | Token
-    right: Node | Token
+    left: Node
+    right: Node
+
+# this is the base identifier when its not surrounded by other identifying shit like var/val/fun
+@dataclass
+class Reference(Node):
+    name: Token
+
+@dataclass
+class Block(Node):
+    stmts: list[Node]
+
+@dataclass
+class FunctionDeclaration(Node):
+    name: Token # = Identifier
+    args: list[Token] # = Identifiers
+    body: Block
+
+@dataclass
+class VariableDeclaration(Node):
+    name: Token
+    value: Node
+
+@dataclass
+class ValueDeclaration(Node):
+    name: Token
+    value: Node
+@dataclass
+class VariableAssignment(Node):
+    name: Token
+    value: Node
+
+@dataclass
+class While(Node):
+    condition: Node | Token
+    stmt: Node

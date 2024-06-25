@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Self
 
 from Consumers import GenericConsumers
 from Consumers.TokenConsumers import token
@@ -8,8 +8,10 @@ from DataTypes.Tokens import TokenType
 from Lib import reduce
 
 ExpressionParser = Consume(lambda: None) # forward declaration.
+StatementParser = Consume(lambda: None) # same here.
+DeclarationParser = Consume(lambda: None) # and here.
 
-PrimaryParser = token(TokenType.IDENTIFIER) \
+PrimaryParser = token(TokenType.IDENTIFIER).penetrate(Reference) \
               | token(TokenType.NUMBER) \
               | token(TokenType.STRING) \
               | token(TokenType.NULL) \
@@ -70,28 +72,55 @@ EqualityTokens = [(TokenType.DEQUALS, BinaryEquals),
                   (TokenType.NOTEQUALS, BinaryNotEquals)]
 EqualityParser = binaries(ComparisonParser, EqualityTokens)
 
+
+ArgsParser = token(TokenType.LEFTPARENTOKEN) >> token(TokenType.IDENTIFIER).delimited(token(TokenType.COMMA)).optional() << token(TokenType.RIGHTPARENTOKEN)
+
+
+VariableAssParser = ((token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: VariableAssignment(*l))
+
+BlockParser = (token(TokenType.LEFTBRACETOKEN) >> DeclarationParser.continuous().optional() << token(TokenType.RIGHTBRACETOKEN)).penetrate(Block)
+
+
+AnonFunctionParser = (ArgsParser << token(TokenType.BIND)) + BlockParser
+
 # here we override the instance method and not the entire instance.
 # this overrides the referenced function and supplies the actual definition,
 # which allows us to create infinitely nested non left or right recursive (primitive?) parsers.
 ExpressionParser.consume = EqualityParser.consume
 
+VariableDeclParser = ((token(TokenType.VAR) >> token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: VariableDeclaration(*l))
 
+ValueDeclParser = ((token(TokenType.VAL) >> token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: ValueDeclaration(*l))
+
+WhileParser = ((token(TokenType.WHILE) >> ExpressionParser) + StatementParser).penetrate(lambda l: While(*l))
+
+StatementParser.consume = (WhileParser | VariableAssParser | BlockParser | ExpressionParser).consume
+FunctionDeclParser = ((token(TokenType.FUN) >> token(TokenType.IDENTIFIER))
+                     + ArgsParser
+                     + StatementParser).penetrate(lambda l: FunctionDeclaration(*l))
+
+ClassDeclParser = ...
+
+DeclarationParser.consume = (FunctionDeclParser | ValueDeclParser | VariableDeclParser | StatementParser).consume
+
+
+FileParser = DeclarationParser.continuous()
 
 # Expressions
 # anonymous function: (a) -> {b}
 # if: {a} if (b) else {c}
 # block: {stmts +expr}
 # match: match a { (b -> {c})+ } where c is block expr
-# identifier: a
-# literals: 123, "a", ...
+# identifier: a ✔
+# literals: 123, "a", ... ✔?
 
 # Statements
-# if: if (a) {b} else if (c) {d} else {e}
-# variable: var a = b where b is expr
-# value: val a = b
-# function def: fun a (b) {c}
+# if: if (a) {b} else [ifstmt]
+# variable: var a = b where b is expr ✔
+# value: val a = b ✔
+# function def: fun a (b) -> {c} ✔
 # return: return a
-# block: {stmts}
+# block: {stmts} ✔
 # for loop: for a in b {c}
-# while loop: while cond {a}
+# while loop: while cond -> {a}
 # match: match a { (b -> {c})+ }

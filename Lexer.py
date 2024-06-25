@@ -45,6 +45,7 @@ NotEqualsLexer         = SimpleTokenLexer('!=', TokenType.NOTEQUALS)
 LeftShiftLexer         = SimpleTokenLexer('<<', TokenType.LEFTSHIFT)
 RightShiftLexer        = SimpleTokenLexer('>>', TokenType.RIGHTSHIFT)
 PipeLexer              = SimpleTokenLexer('|>', TokenType.PIPE)
+BindLexer              = SimpleTokenLexer('->', TokenType.BIND)
 
 
 Keywords = {

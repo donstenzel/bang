@@ -41,3 +41,10 @@ def compare(a, b):
         return Ordering.GREATER
     else:
         return Ordering.EQUAL
+
+
+
+def planet(l, string):
+    """call this with list and a string consisting of '·' and 'o' representing which items to keep."""
+    if len(string) > len(l): raise Exception(f"'{string}' is longer than list.")
+    return [l[i] for i, c in enumerate(string) if c == 'o'] + l[len(string)]

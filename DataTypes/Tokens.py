@@ -36,31 +36,32 @@ class TokenType(Enum):
     LEFTSHIFT         = 25 #  <<
     RIGHTSHIFT        = 26 #  >>
     PIPE              = 27 #  |>
+    BIND              = 28 #  ->
 
     # Literals
-    STRING            = 28 #  (' | ") + content + (' | ") <- quotes have to match.
-    NUMBER            = 29 #  some number of numeric chars in a row, for now just ints. but simple to fix - just copy the float parser from jsonLexer
-    COMMENT           = 30 #  //... until end of line
-    IDENTIFIER        = 31 #  alphabetic chars + _ that dont match anything else
+    STRING            = 29 #  (' | ") + content + (' | ") <- quotes have to match.
+    NUMBER            = 30 #  some number of numeric chars in a row, for now just ints. but simple to fix - just copy the float parser from jsonLexer
+    COMMENT           = 31 #  //... until end of line
+    IDENTIFIER        = 32 #  alphabetic chars + _ that dont match anything else
 
     # Keywords
-    IF                = 32 #  if
-    ELSE              = 33 #  else
-    MATCH             = 34 #  match
-    TRUE              = 35 #  true
-    FALSE             = 36 #  false
-    FOR               = 37 #  for
-    IN                = 38 #  in
-    WHILE             = 39 #  while
-    RETURN            = 40 #  return
-    VAR               = 41 #  var
-    VAL               = 42 #  val
-    THIS              = 43 #  this
-    CLASS             = 44 #  class
-    FUN               = 45 #  fun
-    NULL              = 46 #  null
-    BASE              = 47 #  base
-    LET               = 48 #  let
+    IF                = 33 #  if
+    ELSE              = 34 #  else
+    MATCH             = 35 #  match
+    TRUE              = 36 #  true
+    FALSE             = 37 #  false
+    FOR               = 38 #  for
+    IN                = 39 #  in
+    WHILE             = 40 #  while
+    RETURN            = 41 #  return
+    VAR               = 42 #  var
+    VAL               = 43 #  val
+    THIS              = 44 #  this
+    CLASS             = 45 #  class
+    FUN               = 46 #  fun
+    NULL              = 47 #  null
+    BASE              = 48 #  base
+    LET               = 49 #  let
 
 @dataclass
 class Token:
