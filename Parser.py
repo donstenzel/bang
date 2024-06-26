@@ -34,10 +34,24 @@ def func(init_and_args):
             return FunctionCall(init, reduce_call_chain(args))
 
 
-CommaDelExprsParser = ExpressionParser.delimited(token(TokenType.COMMA)).optional()
+CommaDelExprsParser = token(TokenType.LEFTPARENTOKEN) >> ExpressionParser.delimited(token(TokenType.COMMA)).optional() << token(TokenType.RIGHTPARENTOKEN)
 
 # callee ( args ) *
-FunctionCallParser = (PrimaryParser + (token(TokenType.LEFTPARENTOKEN) >> CommaDelExprsParser << token(TokenType.RIGHTPARENTOKEN))).penetrate(func)
+# (PrimaryParser + (token(TokenType.LEFTPARENTOKEN) >> CommaDelExprsParser << token(TokenType.RIGHTPARENTOKEN))).penetrate(func)
+
+def parse_function_call(collection, pos):
+    match PrimaryParser(collection, pos):
+        case ConsumeError(rest, desc, pos): return ConsumeError(rest, desc, pos)
+        case ConsumeSuccess(rest, parsed, pos):
+            curr = ConsumeSuccess(rest, parsed, pos)
+            while True:
+                match CommaDelExprsParser(rest, pos):
+                    case ConsumeError(_, _, _): break
+                    case ConsumeSuccess(rest, parsed, pos):
+                        curr = ConsumeSuccess(rest, FunctionCall(curr.parsed, parsed), pos)
+            return curr
+
+FunctionCallParser = Consume(parse_function_call)
 
 unaries = lambda tokens: reduce([unary_parser(tkn, node) for tkn, node in tokens], Consume.__or__)
 
@@ -68,7 +82,7 @@ binaries = lambda element, operators: reduce([binary(element, op, node) for op, 
 
 UnaryTokens = [(TokenType.BANG, UnaryBang),
                (TokenType.MINUS, UnaryMinus)]
-UnaryParser = unaries(UnaryTokens) | PrimaryParser
+UnaryParser = unaries(UnaryTokens) | FunctionCallParser
 
 FactorTokens = [(TokenType.STAR, BinaryStar),
                 (TokenType.SLASH, BinarySlash)]
