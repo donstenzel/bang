@@ -120,3 +120,8 @@ class If(Node):
     cond: Node | Token
     stmt: Node
     otherwise: Else = None
+
+@dataclass
+class FunctionCall(Node):
+    callee: Node
+    args: list[Node]

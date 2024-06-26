@@ -19,9 +19,29 @@ PrimaryParser = token(TokenType.IDENTIFIER).penetrate(Reference) \
               | token(TokenType.FALSE) \
               | (token(TokenType.LEFTPARENTOKEN) >> ExpressionParser << token(TokenType.RIGHTPARENTOKEN))
 
+
+
+def func(init_and_args):
+    match init_and_args:
+        case [just_init]:
+            return just_init
+
+        case [init, *args]:
+            def reduce_call_chain(cons_args):
+                match cons_args:
+                    case [one]: return one
+                    case [one, *rest]: return FunctionCall(one, reduce_call_chain(rest))
+            return FunctionCall(init, reduce_call_chain(args))
+
+
+CommaDelExprsParser = ExpressionParser.delimited(token(TokenType.COMMA)).optional()
+
+# callee ( args ) *
+FunctionCallParser = (PrimaryParser + (token(TokenType.LEFTPARENTOKEN) >> CommaDelExprsParser << token(TokenType.RIGHTPARENTOKEN))).penetrate(func)
+
 unaries = lambda tokens: reduce([unary_parser(tkn, node) for tkn, node in tokens], Consume.__or__)
 
-unary_parser= lambda to_match, node: (token(to_match) >> PrimaryParser).penetrate(node)
+unary_parser = lambda to_match, node: (token(to_match) >> FunctionCallParser).penetrate(node)
 
 def binary(element, to_match: TokenType, node) -> Consume[Token]:
     operator = token(to_match)
@@ -113,6 +133,7 @@ DeclarationParser.consume = (FunctionDeclParser | ValueDeclParser | VariableDecl
 FileParser = DeclarationParser.continuous()
 
 # Expressions
+# function call: expr ( exprs )
 # operators ✔
 # anonymous function: (a) -> {b} ✔
 # if: {a} if (b) else {c} ✔
