@@ -33,42 +33,46 @@ class ValueSlot: pass
 
 def resolve(scope, tree: Node):
     match tree:
-        case Reference(name):
+        case Reference(name): # ✔
             if name in scope:
                 return scope.members[name]
-            else: raise Exception(f"{name} not found in current scope.")
-        case UnaryMinus(arg): return UnaryMinus(resolve(scope, arg))
+            else:
+                raise Exception(f"{name} not found in current scope.")
 
-        case BinaryPlus(left, right):
+        case UnaryMinus(arg): # ✔
+            return UnaryMinus(resolve(scope, arg))
+
+        case BinaryPlus(left, right): # ✔
             return BinaryPlus(resolve(scope, left), resolve(scope, right))
 
-        case VariableDeclaration(name, value):
-            scope.members[name] = value
+        case VariableDeclaration(name, value): # ✔
+            scope[name] = value
 
         case FunctionDeclaration(name, args, body):
             func_scope = Scope(scope, {})
             for arg in args:
                 func_scope[arg] = ValueSlot()
 
-            scope.members[name] = FunctionCallable(args, resolve(func_scope, body))
+            scope[name] = FunctionCallable(args, resolve(func_scope, body))
 
         case Block(stmts):
-            return Block([resolve(scope, stmt) for stmt in stmts])
+            block_scope = Scope(scope, {})
+            return Block([resolve(block_scope, stmt) for stmt in stmts])
 
     return tree
 
 @dataclass
-class Value:
+class Value(Node):
     val: int
 
 if __name__ == "__main__":
     scope = Scope(None, {})
 
+    var = VariableDeclaration("Test", Value(20)) # var Test = 20
 
+    resolve(scope, var)
 
-    scope.members["test"] = Value(10)
-
-    node = BinaryPlus(Reference("test"), Reference("test"))
+    node = BinaryPlus(Reference("Test"), Reference("Test")) #  Test + Test
 
     out = resolve(scope, node)
     print(out)
