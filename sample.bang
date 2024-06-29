@@ -3,5 +3,5 @@ val a = 10
 var b = 20
 
 fun plus(a, b) -> {
-    return a + b
+    return a + b + a
 }

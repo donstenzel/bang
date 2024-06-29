@@ -43,10 +43,10 @@ def resolve(scope, tree: Node):
         case None: return None
 
         case Reference(name): # ✔
-            if name in scope:
-                return scope[name]
+            if name.lexeme in scope:
+                return scope[name.lexeme]
             else:
-                raise Exception(f"Cannot reference '{name}' because it does not exist in current scope.")
+                raise Exception(f"Cannot reference '{name.lexeme}' because it does not exist in current scope.")
 
         case UnaryMinus(arg): # ✔
             return UnaryMinus(resolve(scope, arg))
@@ -91,29 +91,29 @@ def resolve(scope, tree: Node):
             return BinaryNotEquals(resolve(scope, left), resolve(scope, right))
 
         case VariableDeclaration(name, value): # ✔
-            scope[name] = VariableDeclaration(name, resolve(scope, value))
-            return scope[name]
+            scope[name.lexeme] = VariableDeclaration(name, resolve(scope, value))
+            return scope[name.lexeme]
 
         case ValueDeclaration(name, value):
-            scope[name] = ValueDeclaration(name, resolve(scope, value))
-            return scope[name]
+            scope[name.lexeme] = ValueDeclaration(name, resolve(scope, value))
+            return scope[name.lexeme]
 
         case VariableAssignment(name, value):
-            if name in scope:
-                match scope[name]:
+            if name.lexeme in scope:
+                match scope[name.lexeme]:
                     case VariableDeclaration(_, _):
                         return VariableAssignment(name, resolve(scope, value))
                     case ValueDeclaration(_, _):
-                        raise Exception(f"Cannot assign value to '{name}' because it is immutable.")
-            raise Exception(f"Cannot assign value to '{name}' because it does not exist in current scope.")
+                        raise Exception(f"Cannot assign value to '{name.lexeme}' because it is immutable.")
+            raise Exception(f"Cannot assign value to '{name.lexeme}' because it does not exist in current scope.")
 
         case AnonymousFunction(args, body):
             return FunctionCallable(args, resolve(Scope(scope, { arg: ValueSlot() for arg in args }), body))
 
         case FunctionDeclaration(name, args, body):
-            scope[name] = FunctionCallable(args, None) # forward declaration for recursion 🥶
-            scope[name].body =  resolve(Scope(scope, { arg: ValueSlot() for arg in args }), body)
-            return scope[name]
+            scope[name.lexeme] = FunctionCallable(args, None) # forward declaration for recursion 🥶
+            scope[name.lexeme].body =  resolve(Scope(scope, { arg.lexeme: ValueSlot() for arg in args }), body)
+            return scope[name.lexeme]
 
         case Block(stmts):
             block_scope = Scope(scope, {})
@@ -133,6 +133,9 @@ def resolve(scope, tree: Node):
                 case _:
                     return FunctionCall(res, [resolve(scope, arg) for arg in args])
 
+        case Return(expr):
+            return Return(resolve(scope, expr))
+
     return tree
 
 @dataclass
@@ -140,27 +143,12 @@ class Value(Node):
     val: int
 
 if __name__ == "__main__":
-    scope = Scope(None, {})
+    s = Scope(None, {})
 
-    var = VariableDeclaration("Test", Value(20)) # var Test = 20
-    r_curr = resolve(scope, var)
+    import Lexer, Parser
+    with open("sample.bang") as f:
+        nodeeee = Parser.FileParser(Lexer.TokenLexer(f.read(), 0), 0)
+
+    r_curr = resolve(s, nodeeee)
     print(r_curr)
-
-    node = BinaryPlus(Reference("Test"), Reference("Test")) #  Test + Test
-    r_curr = resolve(scope, node)
-    print(r_curr, r_curr.left is r_curr.right)
-
-    var = ValueDeclaration("Test", Value(400)) # var Test = 400
-    r_curr = resolve(scope, var)
-    print(r_curr)
-
-    node = BinaryStar(Reference("Test"), Reference("Test"))
-    r_curr = resolve(scope, node)
-    print(r_curr, r_curr.left is r_curr.right)
-
-    node = AnonymousFunction(["a"], Block([]))
-    n2 = ValueDeclaration("anonF", node)
-
-    r_curr = resolve(scope, n2)
-    print(r_curr)
-    print(scope)
+    print(s)

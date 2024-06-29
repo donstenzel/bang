@@ -8,14 +8,12 @@ type ConsumeFunction[T] = Callable[[Iterable[T], int], ConsumeResult[T]]
 
 @dataclass
 class ConsumeSuccess[T]:
-    __match_args__ = ('rest', 'parsed', 'progress')
     rest: Iterable[T]
     parsed: T
     progress: int
 
 @dataclass
 class ConsumeError[T]:
-    __match_args__ = ('rest', 'description', 'progress')
     rest: Iterable[T]
     description: str
     progress: int

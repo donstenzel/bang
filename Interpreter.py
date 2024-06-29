@@ -2,6 +2,7 @@ import sys
 
 import Lexer
 import Parser
+import Linker
 from Consumers import GenericConsumers, StringConsumers
 from Consumers.Consumer import ConsumeSuccess, ConsumeError
 
@@ -14,11 +15,16 @@ class Interpreter:
         self.evaluator = evaluator
     def interpret(self, source: str):
         match self.tokenizer(source, 0):
-            case ConsumeSuccess([], parsed, _):
-                ast = self.parser(parsed, 0)
-                cst = self.linker(ast)
-                result = self.evaluator(cst)
-                return result
+            case ConsumeSuccess([], tokenized, _):
+                match self.parser(tokenized, 0):
+                    case ConsumeSuccess([], parsed, _):
+                        cst = self.linker(Linker.Scope(None, {}), parsed)
+                        result = self.evaluator(cst)
+                        return result
+
+                    case ConsumeError(rest, desc, pos):
+                        return ConsumeError(rest, desc, pos)
+
             case ConsumeError(rest, desc, pos):
                 return ConsumeError(rest, desc, pos)
 
@@ -34,7 +40,7 @@ def noop(a):
     return a
 
 def main():
-    interpreter = Interpreter(Lexer.TokenLexer, Parser.FileParser, noop, noop)
+    interpreter = Interpreter(Lexer.TokenLexer, Parser.FileParser, Linker.resolve, noop)
     match sys.argv:
         case [_]:
             repl(interpreter)

@@ -110,7 +110,7 @@ ArgsParser = token(TokenType.LEFTPARENTOKEN) >> token(TokenType.IDENTIFIER).deli
 
 AnonFunctionParser = ((ArgsParser << token(TokenType.BIND)) + StatementParser).penetrate(lambda l: AnonymousFunction(*l))
 
-ReturnParser = (token(TokenType.RETURN) >> ExpressionParser.optional()).penetrate(lambda l: Return(l))
+ReturnParser = (token(TokenType.RETURN) >> ExpressionParser.optional()).penetrate(Return)
 
 VariableAssParser = ((token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: VariableAssignment(*l))
 
@@ -146,7 +146,7 @@ StatementParser.consume = (IfParser | WhileParser | ReturnParser | VariableAssPa
 DeclarationParser.consume = (FunctionDeclParser | ValueDeclParser | VariableDeclParser | StatementParser).consume
 
 
-FileParser = DeclarationParser.continuous()
+FileParser = DeclarationParser.continuous().penetrate(Block)
 
 # Expressions
 # function call: expr ( exprs )
