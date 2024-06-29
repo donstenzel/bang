@@ -146,7 +146,7 @@ StatementParser.consume = (IfParser | WhileParser | ReturnParser | VariableAssPa
 DeclarationParser.consume = (FunctionDeclParser | ValueDeclParser | VariableDeclParser | StatementParser).consume
 
 
-FileParser = DeclarationParser.continuous().penetrate(Block)
+FileParser = DeclarationParser.continuous().penetrate(File)
 
 # Expressions
 # function call: expr ( exprs )

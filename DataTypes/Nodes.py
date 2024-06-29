@@ -130,3 +130,8 @@ class Return(Node):
 class FunctionCall(Node):
     callee: Node
     args: list[Node]
+
+
+@dataclass
+class File(Node):
+    stmts: list[Node]

@@ -13,12 +13,13 @@ class Interpreter:
         self.parser = parser
         self.linker = linker
         self.evaluator = evaluator
+        self.scope = Linker.Scope(None, {})
     def interpret(self, source: str):
         match self.tokenizer(source, 0):
             case ConsumeSuccess([], tokenized, _):
                 match self.parser(tokenized, 0):
                     case ConsumeSuccess([], parsed, _):
-                        cst = self.linker(Linker.Scope(None, {}), parsed)
+                        cst = self.linker(self.scope, parsed)
                         result = self.evaluator(cst)
                         return result
 
@@ -34,6 +35,7 @@ def repl(interpreter):
     print("Welcome to the bang! repl. enter ~ to exit.")
     while (line := input('> ')) != '~':
         print(interpreter.interpret(list(line)))
+        print(interpreter.scope)
 
 
 def noop(a):

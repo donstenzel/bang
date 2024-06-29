@@ -136,6 +136,9 @@ def resolve(scope, tree: Node):
         case Return(expr):
             return Return(resolve(scope, expr))
 
+        case File(stmts):
+            return File([resolve(scope, stmt) for stmt in stmts])
+
     return tree
 
 @dataclass
