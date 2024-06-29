@@ -92,6 +92,7 @@ class FunctionDeclaration(Node):
 class AnonymousFunction(Node):
     args: list[Token]
     body: Block
+
 @dataclass
 class VariableDeclaration(Node):
     name: Token
@@ -119,7 +120,11 @@ class Else(Node):
 class If(Node):
     cond: Node | Token
     stmt: Node
-    otherwise: Else = None
+    otherwise: Else | None = None
+
+@dataclass
+class Return(Node):
+    value: Node | None = None
 
 @dataclass
 class FunctionCall(Node):

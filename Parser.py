@@ -106,12 +106,11 @@ EqualityTokens = [(TokenType.DEQUALS, BinaryEquals),
                   (TokenType.NOTEQUALS, BinaryNotEquals)]
 EqualityParser = binaries(ComparisonParser, EqualityTokens)
 
-
 ArgsParser = token(TokenType.LEFTPARENTOKEN) >> token(TokenType.IDENTIFIER).delimited(token(TokenType.COMMA)).optional() << token(TokenType.RIGHTPARENTOKEN)
 
 AnonFunctionParser = ((ArgsParser << token(TokenType.BIND)) + StatementParser).penetrate(lambda l: AnonymousFunction(*l))
 
-
+ReturnParser = (token(TokenType.RETURN) >> ExpressionParser.optional()).penetrate(lambda l: Return(l))
 
 VariableAssParser = ((token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: VariableAssignment(*l))
 
@@ -127,7 +126,6 @@ VariableDeclParser = ((token(TokenType.VAR) >> token(TokenType.IDENTIFIER) << to
 
 ValueDeclParser = ((token(TokenType.VAL) >> token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: ValueDeclaration(*l))
 
-
 FunctionDeclParser = ((token(TokenType.FUN) >> token(TokenType.IDENTIFIER))
                      +(ArgsParser << token(TokenType.BIND))
                      + StatementParser).penetrate(lambda l: FunctionDeclaration(*l))
@@ -140,7 +138,7 @@ ClassDeclParser = ...
 # this overrides the referenced function and supplies the actual definition,
 # which allows us to create infinitely nested non left or right recursive (primitive?) parsers.
 ExpressionParser.consume = (AnonFunctionParser | EqualityParser).consume
-StatementParser.consume = (IfParser | WhileParser | VariableAssParser | BlockParser | ExpressionParser).consume
+StatementParser.consume = (IfParser | WhileParser | ReturnParser | VariableAssParser | BlockParser | ExpressionParser).consume
 DeclarationParser.consume = (FunctionDeclParser | ValueDeclParser | VariableDeclParser | StatementParser).consume
 
 
