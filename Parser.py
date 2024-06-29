@@ -126,9 +126,13 @@ VariableDeclParser = ((token(TokenType.VAR) >> token(TokenType.IDENTIFIER) << to
 
 ValueDeclParser = ((token(TokenType.VAL) >> token(TokenType.IDENTIFIER) << token(TokenType.EQUALS)) + ExpressionParser).penetrate(lambda l: ValueDeclaration(*l))
 
+def funcdecl(l):
+    name, *args, stmt = l
+    return FunctionDeclaration(name, args, stmt)
+
 FunctionDeclParser = ((token(TokenType.FUN) >> token(TokenType.IDENTIFIER))
                      +(ArgsParser << token(TokenType.BIND))
-                     + StatementParser).penetrate(lambda l: FunctionDeclaration(*l))
+                     + StatementParser).penetrate(funcdecl)
 
 ClassDeclParser = ...
 

@@ -44,7 +44,7 @@ def main():
                     source = file.read()
             except FileNotFoundError as _:
                 source = source_or_file
-            print(interpreter.interpret(source))
+            print(interpreter.interpret(list(source)))
         case [*_]: print("Use with a source file, direct source string or on its own.")
 
 

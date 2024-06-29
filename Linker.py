@@ -120,6 +120,7 @@ def resolve(scope, tree: Node):
             return Block([resolve(block_scope, stmt) for stmt in stmts])
 
         case FunctionCall(callee, args):
+            # we can only do analysis when we know that the callee is a callable.
             res = resolve(scope, callee)
             match res:
                 case FunctionCallable(slots, _):
