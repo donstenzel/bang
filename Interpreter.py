@@ -33,15 +33,14 @@ class Interpreter:
 
 
 def repl(interpreter):
-    line_start = Lib.Colors[7] + '> '# + Lib.ColorOff
-    print(f"{Lib.NAME}{Lib.Colors[17]}Welcome to the interactive environment. enter ~ to exit.{Lib.ColorOff}")
-    while (line := input(line_start)) != '~':
+    print(*[c + '#' for c in Lib.Colors], sep='')
+    print(f"{Lib.NAME}{Lib.Colors[17]}Welcome to the interactive environment. enter ~ to exit.")
+    while (line := input('> ')) != '~':
         try:
-            res = interpreter.interpret(list(line))
-            print(res)
-            print(interpreter.eval_scope)
+            result = interpreter.interpret(list(line))
+            print(Lib.Colors[9], result, Lib.ColorOff, sep='')
         except Exception as e:
-            print(e)
+            print(Lib.Colors[0], e, Lib.ColorOff, sep='')
     print(Lib.Colors[17] + "👋 keep banging!" + Lib.ColorOff)
 
 

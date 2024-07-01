@@ -99,8 +99,12 @@ def evaluate(scope, tree):
             return FunctionCallable(args, body)
 
         case File(stmts):
-            for stmt in stmts:
-                evaluate(scope, stmt)
+            match stmts:
+                case [single]:
+                    return evaluate(scope, single)
+                case [*multiple]:
+                    for stmt in multiple:
+                        evaluate(scope, stmt)
 
         case FunctionCall(callee, args):
             match evaluate(scope, callee):
