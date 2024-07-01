@@ -1,3 +1,4 @@
+from types import NoneType
 from typing import Iterable, Self
 
 from Consumers import GenericConsumers
@@ -12,32 +13,14 @@ StatementParser = Consume(lambda: None) # same here.
 DeclarationParser = Consume(lambda: None) # and here.
 
 PrimaryParser = token(TokenType.IDENTIFIER).penetrate(Reference) \
-              | token(TokenType.NUMBER) \
-              | token(TokenType.STRING) \
-              | token(TokenType.NULL) \
-              | token(TokenType.TRUE) \
-              | token(TokenType.FALSE) \
+              | token(TokenType.NUMBER).penetrate(lambda v: Literal(v, int)) \
+              | token(TokenType.STRING).penetrate(lambda v: Literal(v, str)) \
+              | token(TokenType.NULL).penetrate(lambda v: Literal(v, NoneType)) \
+              | token(TokenType.TRUE).penetrate(lambda v: Literal(v, bool)) \
+              | token(TokenType.FALSE).penetrate(lambda v: Literal(v, bool)) \
               | (token(TokenType.LEFTPARENTOKEN) >> ExpressionParser << token(TokenType.RIGHTPARENTOKEN))
 
-
-
-def func(init_and_args):
-    match init_and_args:
-        case [just_init]:
-            return just_init
-
-        case [init, *args]:
-            def reduce_call_chain(cons_args):
-                match cons_args:
-                    case [one]: return one
-                    case [one, *rest]: return FunctionCall(one, reduce_call_chain(rest))
-            return FunctionCall(init, reduce_call_chain(args))
-
-
 CommaDelExprsParser = token(TokenType.LEFTPARENTOKEN) >> ExpressionParser.delimited(token(TokenType.COMMA)).optional() << token(TokenType.RIGHTPARENTOKEN)
-
-# callee ( args ) *
-# (PrimaryParser + (token(TokenType.LEFTPARENTOKEN) >> CommaDelExprsParser << token(TokenType.RIGHTPARENTOKEN))).penetrate(func)
 
 def parse_function_call(collection, pos):
     match PrimaryParser(collection, pos):

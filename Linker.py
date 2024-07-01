@@ -7,28 +7,9 @@ from dataclasses import dataclass
 
 import Lib
 from DataTypes.Nodes import *
+from DataTypes.Scopes import *
 
 
-@dataclass
-class Scope:
-    parent: Scope | None
-    members: dict
-
-    def __contains__(self, item):
-        match item in self.members.keys():
-            case True: return True
-            case False: return False if self.parent is None else self.parent.__contains__(item)
-
-    def __getitem__(self, key):
-        match key in self.members.keys():
-            case True: return self.members[key]
-            case False:
-                if self.parent is None:
-                    raise Exception(f"{key} does not exist in this scope.")
-                return self.parent[key]
-
-    def __setitem__(self, key, value):
-        self.members[key] = value
 
 @dataclass
 class FunctionCallable:
@@ -42,11 +23,8 @@ def resolve(scope, tree: Node):
 
         case None: return None
 
-        case Reference(name): # ✔
-            if name.lexeme in scope:
-                return scope[name.lexeme]
-            else:
-                raise Exception(f"Cannot reference '{name.lexeme}' because it does not exist in current scope.")
+        case Literal(value, t):
+            return Literal(value, t)
 
         case UnaryMinus(arg): # ✔
             return UnaryMinus(resolve(scope, arg))
@@ -90,6 +68,15 @@ def resolve(scope, tree: Node):
         case BinaryNotEquals(left, right):
             return BinaryNotEquals(resolve(scope, left), resolve(scope, right))
 
+        case Else(stmt):
+            return Else(resolve(scope, stmt))
+
+        case If(cond, stmt, otherwise):
+            return If(resolve(scope, cond), resolve(scope, stmt), resolve(scope, otherwise))
+
+        case While(cond, stmt):
+            return While(resolve(scope, cond), resolve(scope, stmt))
+
         case VariableDeclaration(name, value): # ✔
             scope[name.lexeme] = VariableDeclaration(name, resolve(scope, value))
             return scope[name.lexeme]
@@ -108,7 +95,7 @@ def resolve(scope, tree: Node):
             raise Exception(f"Cannot assign value to '{name.lexeme}' because it does not exist in current scope.")
 
         case AnonymousFunction(args, body):
-            return FunctionCallable(args, resolve(Scope(scope, { arg: ValueSlot() for arg in args }), body))
+            return FunctionCallable(args, resolve(Scope(scope, { arg.lexeme: ValueSlot() for arg in args }), body))
 
         case FunctionDeclaration(name, args, body):
             scope[name.lexeme] = FunctionCallable(args, None) # forward declaration for recursion 🥶
@@ -132,6 +119,12 @@ def resolve(scope, tree: Node):
                         case Lib.Ordering.LESS: raise Exception(f"Too many arguments: expected {ls}, found {la}.")
                 case _:
                     return FunctionCall(res, [resolve(scope, arg) for arg in args])
+
+        case Reference(name): # ✔
+            if name.lexeme in scope:
+                return scope[name.lexeme]
+            else:
+                raise Exception(f"Cannot reference '{name.lexeme}' because it does not exist in current scope.")
 
         case Return(expr):
             return Return(resolve(scope, expr))

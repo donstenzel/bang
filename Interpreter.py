@@ -1,9 +1,9 @@
 import sys
 
 import Lexer
+import Lib
 import Parser
 import Linker
-from Consumers import GenericConsumers, StringConsumers
 from Consumers.Consumer import ConsumeSuccess, ConsumeError
 
 
@@ -30,12 +30,17 @@ class Interpreter:
                 return ConsumeError(rest, desc, pos)
 
 
-
 def repl(interpreter):
-    print("Welcome to the bang! repl. enter ~ to exit.")
-    while (line := input('> ')) != '~':
-        print(interpreter.interpret(list(line)))
-        print(interpreter.scope)
+    line_start = Lib.Colors[7] + '> '# + Lib.ColorOff
+    print(f"{Lib.NAME}{Lib.Colors[17]}Welcome to the interactive environment. enter ~ to exit.{Lib.ColorOff}")
+    while (line := input(line_start)) != '~':
+        try:
+            res = interpreter.interpret(list(line))
+            print(res)
+            print(interpreter.scope)
+        except Exception as e:
+            print(e)
+    print(Lib.Colors[17] + "👋 keep banging!" + Lib.ColorOff)
 
 
 def noop(a):

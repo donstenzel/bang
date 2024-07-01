@@ -117,7 +117,7 @@ class Consume[T]:
             match self(collection, pos):
                 case ConsumeError(rest, desc, pos): return ConsumeError(rest, desc, pos)
                 case ConsumeSuccess(rest, parsed, pos):
-                    curr = ConsumeSuccess(rest, parsed, pos)
+                    curr = ConsumeSuccess(rest, [parsed], pos)
                     while True:
                         match other(rest, pos):
                             case ConsumeError(_, _, _): break

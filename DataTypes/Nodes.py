@@ -1,9 +1,16 @@
 from dataclasses import dataclass
+from typing import Type
 
 from DataTypes.Tokens import Token
 
 
 class Node: pass
+
+
+@dataclass
+class Literal(Node):
+    value: Token
+    type: Type
 
 @dataclass
 class UnaryMinus(Node):
@@ -102,6 +109,7 @@ class VariableDeclaration(Node):
 class ValueDeclaration(Node):
     name: Token
     value: Node
+
 @dataclass
 class VariableAssignment(Node):
     name: Token
