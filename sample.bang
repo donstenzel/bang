@@ -2,6 +2,32 @@ val a = 10
 
 var b = 20
 
+val c = 10383
+
 fun plus(a, b) -> {
-    return a + b + a
+    return a + b + c
 }
+
+fun minus(a, b) -> {
+    return a - b
+}
+
+var T = 10
+
+fun one() -> {
+    return T
+}
+
+fun two() -> {
+    return T
+}
+
+one()
+
+var T = 20
+
+fun three() -> {
+    return T
+}
+
+two()
