@@ -1,6 +1,14 @@
-
+import Lib
 from DataTypes.Scopes import *
 from DataTypes.Nodes import *
+from Linker import FunctionCallable
+
+class ReturnException(Exception):
+    def __init__(self, value):
+        self.value = value
+
+
+# technically eval and exec
 def evaluate(scope, tree):
 
     match tree:
@@ -57,3 +65,56 @@ def evaluate(scope, tree):
 
         case Else(stmt):
             evaluate(scope, stmt)
+
+        case While(cond, stmt):
+            while evaluate(scope, cond):
+                evaluate(scope, stmt)
+
+        case Block(stmts):
+            block_scope = Scope(scope, {})
+            for stmt in stmts:
+                evaluate(block_scope, stmt)
+
+        case Return(expr):
+            raise ReturnException(value= evaluate(scope, expr))
+
+        case ValueDeclaration(name, value):
+            scope[name.lexeme] = evaluate(scope, value)
+
+        case VariableDeclaration(name, value):
+            scope[name.lexeme] = evaluate(scope, value)
+
+        case VariableAssignment(name, value):
+            # this is always safe since the linker takes care of illegal assignments
+            scope[name.lexeme] = evaluate(scope, value)
+
+        case Reference(name):
+            # similar to assignment, linker nags you about illegal references
+            return scope[name.lexeme]
+
+        case FunctionDeclaration(name, args, body):
+            scope[name.lexeme] = FunctionCallable(args, body)
+
+        case AnonymousFunction(args, body):
+            return FunctionCallable(args, body)
+
+        case File(stmts):
+            for stmt in stmts:
+                evaluate(scope, stmt)
+
+        case FunctionCall(callee, args):
+            match evaluate(scope, callee):
+                case FunctionCallable(slots, body):
+                    la = len(args)
+                    ls = len(slots)
+                    match Lib.compare(la, ls):
+                        case Lib.Ordering.LESS: raise Exception(f"Not enough arguments given, expected {ls}, got {la}")
+                        case Lib.Ordering.GREATER: raise Exception(f"Too many arguments given, expected {ls}, got {la}")
+                        case Lib.Ordering.EQUAL:
+                            temp_scope = Scope(scope, { slot.lexeme: evaluate(scope, args[i]) for i, slot in enumerate(slots) })
+                            try:
+                                evaluate(temp_scope, body)
+                            except ReturnException as re:
+                                return re.value
+                case _:
+                    raise Exception(f"Illegal callee: {callee}")

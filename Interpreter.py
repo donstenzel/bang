@@ -1,5 +1,6 @@
 import sys
 
+import Evaluator
 import Lexer
 import Lib
 import Parser
@@ -13,14 +14,15 @@ class Interpreter:
         self.parser = parser
         self.linker = linker
         self.evaluator = evaluator
-        self.scope = Linker.Scope(None, {})
+        self.linker_scope = Linker.Scope(None, {})
+        self.eval_scope = Linker.Scope(None, {})
     def interpret(self, source: str):
         match self.tokenizer(source, 0):
             case ConsumeSuccess([], tokenized, _):
                 match self.parser(tokenized, 0):
                     case ConsumeSuccess([], parsed, _):
-                        cst = self.linker(self.scope, parsed)
-                        result = self.evaluator(cst)
+                        linked = self.linker(self.linker_scope, parsed)
+                        result = self.evaluator(self.eval_scope, linked)
                         return result
 
                     case ConsumeError(rest, desc, pos):
@@ -37,7 +39,7 @@ def repl(interpreter):
         try:
             res = interpreter.interpret(list(line))
             print(res)
-            print(interpreter.scope)
+            print(interpreter.eval_scope)
         except Exception as e:
             print(e)
     print(Lib.Colors[17] + "👋 keep banging!" + Lib.ColorOff)
@@ -47,7 +49,7 @@ def noop(a):
     return a
 
 def main():
-    interpreter = Interpreter(Lexer.TokenLexer, Parser.FileParser, Linker.resolve, noop)
+    interpreter = Interpreter(Lexer.TokenLexer, Parser.FileParser, Linker.resolve, Evaluator.evaluate)
     match sys.argv:
         case [_]:
             repl(interpreter)

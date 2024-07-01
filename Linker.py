@@ -13,7 +13,7 @@ from DataTypes.Scopes import *
 
 @dataclass
 class FunctionCallable:
-    slots: list[str] # identifiers
+    slots: list[Token] # identifiers
     body: Block
 
 class ValueSlot: pass
@@ -95,12 +95,13 @@ def resolve(scope, tree: Node):
             raise Exception(f"Cannot assign value to '{name.lexeme}' because it does not exist in current scope.")
 
         case AnonymousFunction(args, body):
-            return FunctionCallable(args, resolve(Scope(scope, { arg.lexeme: ValueSlot() for arg in args }), body))
+            _ = FunctionCallable(args, resolve(Scope(scope, { arg.lexeme: ValueSlot() for arg in args }), body))
+            return AnonymousFunction(args, body)
 
         case FunctionDeclaration(name, args, body):
             scope[name.lexeme] = FunctionCallable(args, None) # forward declaration for recursion 🥶
             scope[name.lexeme].body =  resolve(Scope(scope, { arg.lexeme: ValueSlot() for arg in args }), body)
-            return scope[name.lexeme]
+            return FunctionDeclaration(name, args, body)
 
         case Block(stmts):
             block_scope = Scope(scope, {})
@@ -122,7 +123,7 @@ def resolve(scope, tree: Node):
 
         case Reference(name): # ✔
             if name.lexeme in scope:
-                return scope[name.lexeme]
+                return Reference(name) # scope[name.lexeme]
             else:
                 raise Exception(f"Cannot reference '{name.lexeme}' because it does not exist in current scope.")
 
